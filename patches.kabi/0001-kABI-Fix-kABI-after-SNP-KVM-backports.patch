@@ -57,7 +57,7 @@ index f7d37dfc2ba7..0971d381a240 100644
  };
  
  struct kvm_x86_nested_ops {
-@@ -2170,7 +2171,7 @@ void kvm_configure_mmu(bool enable_tdp, int tdp_forced_root_level,
+@@ -2170,12 +2171,12 @@ void kvm_configure_mmu(bool enable_tdp, int tdp_forced_root_level,
  
  
  #ifdef CONFIG_KVM_PRIVATE_MEM
@@ -66,6 +66,12 @@ index f7d37dfc2ba7..0971d381a240 100644
  #else
  #define kvm_arch_has_private_mem(kvm) false
  #endif
+ 
+-#define kvm_arch_has_readonly_mem(kvm) (!(kvm)->arch.has_protected_state)
++#define kvm_arch_has_readonly_mem(kvm) (!(kvm)->has_protected_state)
+ 
+ static inline u16 kvm_read_ldt(void)
+ {
 diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
 index 2a361bbfcc88..1fd9a9b3271e 100644
 --- a/arch/x86/kvm/mmu/mmu.c
