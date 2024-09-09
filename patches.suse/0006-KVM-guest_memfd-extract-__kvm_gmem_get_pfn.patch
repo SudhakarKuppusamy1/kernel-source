@@ -23,7 +23,7 @@ diff --git a/virt/kvm/guest_memfd.c b/virt/kvm/guest_memfd.c
 index 0176089be731..bfe437098b79 100644
 --- a/virt/kvm/guest_memfd.c
 +++ b/virt/kvm/guest_memfd.c
-@@ -528,33 +528,29 @@ void kvm_gmem_unbind(struct kvm_memory_slot *slot)
+@@ -528,39 +528,34 @@ void kvm_gmem_unbind(struct kvm_memory_slot *slot)
  	fput(file);
  }
  
@@ -66,10 +66,17 @@ index 0176089be731..bfe437098b79 100644
 +		return PTR_ERR(folio);
  
  	if (folio_test_hwpoison(folio)) {
- 		r = -EHWPOISON;
-@@ -571,9 +567,21 @@ int kvm_gmem_get_pfn(struct kvm *kvm, struct kvm_memory_slot *slot,
+ 		folio_unlock(folio);
+ 		folio_put(folio);
+-		r = -EHWPOISON;
+-		goto out_fput;
++		return -EHWPOISON;
+ 	}
  
- out_unlock:
+ 	page = folio_file_page(folio, index);
+@@ -571,9 +567,21 @@ int kvm_gmem_get_pfn(struct kvm *kvm, struct kvm_memory_slot *slot,
+ 	r = 0;
+ 
  	folio_unlock(folio);
 -out_fput:
 -	fput(file);
