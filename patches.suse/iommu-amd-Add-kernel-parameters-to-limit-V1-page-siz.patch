@@ -1,0 +1,132 @@
+From: Joerg Roedel <jroedel@suse.de>
+Date: Wed, 4 Sep 2024 12:44:15 +0200
+Subject: [PATCH] iommu/amd: Add kernel parameters to limit V1 page-sizes
+References: jsc#PED-5122
+Patch-mainline: Not yet, currently discussed on ML
+
+Add two new kernel command line parameters to limit the page-sizes
+used for v1 page-tables:
+
+	nohugepages     - Limits page-sizes to 4KiB
+
+	v2_pgsizes_only - Limits page-sizes to 4Kib/2Mib/1GiB; The
+	                  same as the sizes used with v2 page-tables
+
+This is needed for multiple scenarios. When assigning devices to
+SEV-SNP guests the IOMMU page-sizes need to match the sizes in the RMP
+table, otherwise the device will not be able to access all shared
+memory.
+
+Also, some ATS devices do not work properly with arbitrary IO
+page-sizes as supported by AMD-Vi, so limiting the sizes used by the
+driver is a suitable workaround.
+
+All-in-all, these parameters are only workarounds until the IOMMU core
+and related APIs gather the ability to negotiate the page-sizes in a
+better way.
+
+Signed-off-by: Joerg Roedel <jroedel@suse.de>
+---
+ Documentation/admin-guide/kernel-parameters.txt |   17 +++++++++++------
+ drivers/iommu/amd/amd_iommu.h                   |    1 +
+ drivers/iommu/amd/amd_iommu_types.h             |    4 ++++
+ drivers/iommu/amd/init.c                        |    8 ++++++++
+ drivers/iommu/amd/io_pgtable.c                  |    2 +-
+ drivers/iommu/amd/iommu.c                       |    2 ++
+ 6 files changed, 27 insertions(+), 7 deletions(-)
+
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -318,12 +318,17 @@
+ 					  allowed anymore to lift isolation
+ 					  requirements as needed. This option
+ 					  does not override iommu=pt
+-			force_enable - Force enable the IOMMU on platforms known
+-				       to be buggy with IOMMU enabled. Use this
+-				       option with care.
+-			pgtbl_v1     - Use v1 page table for DMA-API (Default).
+-			pgtbl_v2     - Use v2 page table for DMA-API.
+-			irtcachedis  - Disable Interrupt Remapping Table (IRT) caching.
++			force_enable    - Force enable the IOMMU on platforms known
++				          to be buggy with IOMMU enabled. Use this
++				          option with care.
++			pgtbl_v1        - Use v1 page table for DMA-API (Default).
++			pgtbl_v2        - Use v2 page table for DMA-API.
++			irtcachedis     - Disable Interrupt Remapping Table (IRT) caching.
++			nohugepages     - Limit page-sizes used for v1 page-tables
++				          to 4 KiB.
++			v2_pgsizes_only - Limit page-sizes used for v1 page-tables
++				          to 4KiB/2Mib/1GiB.
++
+ 
+ 	amd_iommu_dump=	[HW,X86-64]
+ 			Enable AMD IOMMU driver option to dump the ACPI table
+--- a/drivers/iommu/amd/amd_iommu.h
++++ b/drivers/iommu/amd/amd_iommu.h
+@@ -37,6 +37,7 @@ int amd_iommu_enable_faulting(unsigned i
+ extern int amd_iommu_guest_ir;
+ extern enum io_pgtable_fmt amd_iommu_pgtable;
+ extern int amd_iommu_gpt_level;
++extern unsigned long amd_iommu_pgsize_bitmap;
+ 
+ bool amd_iommu_v2_supported(void);
+ struct amd_iommu *get_amd_iommu(unsigned int idx);
+--- a/drivers/iommu/amd/amd_iommu_types.h
++++ b/drivers/iommu/amd/amd_iommu_types.h
+@@ -286,6 +286,10 @@
+  * 512GB Pages are not supported due to a hardware bug
+  */
+ #define AMD_IOMMU_PGSIZES	((~0xFFFUL) & ~(2ULL << 38))
++
++/* Special mode where page-sizes are limited to 4 KiB */
++#define AMD_IOMMU_PGSIZES_4K	(PAGE_SIZE)
++
+ /* 4K, 2MB, 1G page sizes are supported */
+ #define AMD_IOMMU_PGSIZES_V2	(PAGE_SIZE | (1ULL << 21) | (1ULL << 30))
+ 
+--- a/drivers/iommu/amd/init.c
++++ b/drivers/iommu/amd/init.c
+@@ -191,6 +191,8 @@ bool amdr_ivrs_remap_support __read_most
+ 
+ bool amd_iommu_force_isolation __read_mostly;
+ 
++unsigned long amd_iommu_pgsize_bitmap __ro_after_init = AMD_IOMMU_PGSIZES;
++
+ /*
+  * AMD IOMMU allows up to 2^16 different protection domains. This is a bitmap
+  * to know which ones are already in use.
+@@ -3531,6 +3533,12 @@ static int __init parse_amd_iommu_option
+ 			amd_iommu_pgtable = AMD_IOMMU_V2;
+ 		} else if (strncmp(str, "irtcachedis", 11) == 0) {
+ 			amd_iommu_irtcachedis = true;
++		} else if (strncmp(str, "nohugepages", 11) == 0) {
++			pr_info("Restricting V1 page-sizes to 4KiB");
++			amd_iommu_pgsize_bitmap = AMD_IOMMU_PGSIZES_4K;
++		} else if (strncmp(str, "v2_pgsizes_only", 15) == 0) {
++			pr_info("Restricting V1 page-sizes to 4KiB/2MiB/1GiB");
++			amd_iommu_pgsize_bitmap = AMD_IOMMU_PGSIZES_V2;
+ 		} else {
+ 			pr_notice("Unknown option - '%s'\n", str);
+ 		}
+--- a/drivers/iommu/amd/io_pgtable.c
++++ b/drivers/iommu/amd/io_pgtable.c
+@@ -586,7 +586,7 @@ static struct io_pgtable *v1_alloc_pgtab
+ {
+ 	struct amd_io_pgtable *pgtable = io_pgtable_cfg_to_data(cfg);
+ 
+-	cfg->pgsize_bitmap  = AMD_IOMMU_PGSIZES;
++	cfg->pgsize_bitmap  = amd_iommu_pgsize_bitmap;
+ 	cfg->ias            = IOMMU_IN_ADDR_BIT_SIZE;
+ 	cfg->oas            = IOMMU_OUT_ADDR_BIT_SIZE;
+ 	cfg->tlb            = &v1_flush_ops;
+--- a/drivers/iommu/amd/iommu.c
++++ b/drivers/iommu/amd/iommu.c
+@@ -2112,6 +2112,8 @@ static int protection_domain_init_v1(str
+ 			return -ENOMEM;
+ 	}
+ 
++	domain->domain.pgsize_bitmap = amd_iommu_pgsize_bitmap;
++
+ 	amd_iommu_domain_set_pgtable(domain, pt_root, mode);
+ 
+ 	return 0;
