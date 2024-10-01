@@ -6,17 +6,14 @@ References: jsc#PED-5122
 
 Signed-off-by: Joerg Roedel <jroedel@suse.de>
 ---
- arch/x86/include/asm/kvm_host.h | 11 ++++++-----
- arch/x86/kvm/mmu/mmu.c          |  2 +-
- arch/x86/kvm/svm/svm.c          |  4 ++--
- arch/x86/kvm/x86.c              | 30 +++++++++++++++---------------
- include/linux/cc_platform.h     |  2 ++
- include/linux/kvm_host.h        |  5 +++++
- include/uapi/linux/kvm.h        |  2 ++
- 7 files changed, 33 insertions(+), 23 deletions(-)
+ arch/x86/include/asm/kvm_host.h |   13 +++++++------
+ arch/x86/kvm/mmu/mmu.c          |    2 +-
+ arch/x86/kvm/svm/svm.c          |    4 ++--
+ arch/x86/kvm/x86.c              |   30 +++++++++++++++---------------
+ include/linux/cc_platform.h     |    2 ++
+ include/linux/kvm_host.h        |    5 +++++
+ 6 files changed, 32 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index f7d37dfc2ba7..0971d381a240 100644
 --- a/arch/x86/include/asm/kvm_host.h
 +++ b/arch/x86/include/asm/kvm_host.h
 @@ -1288,14 +1288,12 @@ enum kvm_apicv_inhibit {
@@ -57,7 +54,7 @@ index f7d37dfc2ba7..0971d381a240 100644
  };
  
  struct kvm_x86_nested_ops {
-@@ -2170,12 +2171,12 @@ void kvm_configure_mmu(bool enable_tdp, int tdp_forced_root_level,
+@@ -2170,12 +2171,12 @@ void kvm_configure_mmu(bool enable_tdp,
  
  
  #ifdef CONFIG_KVM_PRIVATE_MEM
@@ -72,11 +69,9 @@ index f7d37dfc2ba7..0971d381a240 100644
  
  static inline u16 kvm_read_ldt(void)
  {
-diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
-index 2a361bbfcc88..1fd9a9b3271e 100644
 --- a/arch/x86/kvm/mmu/mmu.c
 +++ b/arch/x86/kvm/mmu/mmu.c
-@@ -3375,7 +3375,7 @@ static bool page_fault_can_be_fast(struct kvm *kvm, struct kvm_page_fault *fault
+@@ -3375,7 +3375,7 @@ static bool page_fault_can_be_fast(struc
  	 * on RET_PF_SPURIOUS until the update completes, or an actual spurious
  	 * case might go down the slow path. Either case will resolve itself.
  	 */
@@ -85,11 +80,9 @@ index 2a361bbfcc88..1fd9a9b3271e 100644
  	    fault->is_private != kvm_mem_is_private(kvm, fault->gfn))
  		return false;
  
-diff --git a/arch/x86/kvm/svm/svm.c b/arch/x86/kvm/svm/svm.c
-index 160849690c4c..4a5a9bf2a045 100644
 --- a/arch/x86/kvm/svm/svm.c
 +++ b/arch/x86/kvm/svm/svm.c
-@@ -4910,11 +4910,11 @@ static int svm_vm_init(struct kvm *kvm)
+@@ -4939,11 +4939,11 @@ static int svm_vm_init(struct kvm *kvm)
  
  	if (type != KVM_X86_DEFAULT_VM &&
  	    type != KVM_X86_SW_PROTECTED_VM) {
@@ -103,11 +96,9 @@ index 160849690c4c..4a5a9bf2a045 100644
  	}
  
  	if (!pause_filter_count || !pause_filter_thresh)
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 2d507ec1d898..ade5835ca625 100644
 --- a/arch/x86/kvm/x86.c
 +++ b/arch/x86/kvm/x86.c
-@@ -5558,7 +5558,7 @@ static int kvm_vcpu_ioctl_x86_get_debugregs(struct kvm_vcpu *vcpu,
+@@ -5559,7 +5559,7 @@ static int kvm_vcpu_ioctl_x86_get_debugr
  	unsigned long val;
  	unsigned int i;
  
@@ -116,7 +107,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -5579,7 +5579,7 @@ static int kvm_vcpu_ioctl_x86_set_debugregs(struct kvm_vcpu *vcpu,
+@@ -5580,7 +5580,7 @@ static int kvm_vcpu_ioctl_x86_set_debugr
  {
  	unsigned int i;
  
@@ -125,7 +116,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -5622,7 +5622,7 @@ static int kvm_vcpu_ioctl_x86_get_xsave2(struct kvm_vcpu *vcpu,
+@@ -5623,7 +5623,7 @@ static int kvm_vcpu_ioctl_x86_get_xsave2
  			     XFEATURE_MASK_FPSSE;
  
  	if (fpstate_is_confidential(&vcpu->arch.guest_fpu))
@@ -134,7 +125,7 @@ index 2d507ec1d898..ade5835ca625 100644
  
  	fpu_copy_guest_fpstate_to_uabi(&vcpu->arch.guest_fpu, state, size,
  				       supported_xcr0, vcpu->arch.pkru);
-@@ -5640,7 +5640,7 @@ static int kvm_vcpu_ioctl_x86_set_xsave(struct kvm_vcpu *vcpu,
+@@ -5641,7 +5641,7 @@ static int kvm_vcpu_ioctl_x86_set_xsave(
  					struct kvm_xsave *guest_xsave)
  {
  	if (fpstate_is_confidential(&vcpu->arch.guest_fpu))
@@ -143,7 +134,7 @@ index 2d507ec1d898..ade5835ca625 100644
  
  	return fpu_copy_uabi_to_guest_fpstate(&vcpu->arch.guest_fpu,
  					      guest_xsave->region,
-@@ -5651,7 +5651,7 @@ static int kvm_vcpu_ioctl_x86_set_xsave(struct kvm_vcpu *vcpu,
+@@ -5652,7 +5652,7 @@ static int kvm_vcpu_ioctl_x86_set_xsave(
  static int kvm_vcpu_ioctl_x86_get_xcrs(struct kvm_vcpu *vcpu,
  				       struct kvm_xcrs *guest_xcrs)
  {
@@ -152,7 +143,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -5672,7 +5672,7 @@ static int kvm_vcpu_ioctl_x86_set_xcrs(struct kvm_vcpu *vcpu,
+@@ -5673,7 +5673,7 @@ static int kvm_vcpu_ioctl_x86_set_xcrs(s
  {
  	int i, r = 0;
  
@@ -161,7 +152,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -6286,7 +6286,7 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
+@@ -6289,7 +6289,7 @@ long kvm_arch_vcpu_ioctl(struct file *fi
  #endif
  	case KVM_GET_SREGS2: {
  		r = -EINVAL;
@@ -170,7 +161,7 @@ index 2d507ec1d898..ade5835ca625 100644
  		    vcpu->arch.guest_state_protected)
  			goto out;
  
-@@ -6303,7 +6303,7 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
+@@ -6306,7 +6306,7 @@ long kvm_arch_vcpu_ioctl(struct file *fi
  	}
  	case KVM_SET_SREGS2: {
  		r = -EINVAL;
@@ -179,7 +170,7 @@ index 2d507ec1d898..ade5835ca625 100644
  		    vcpu->arch.guest_state_protected)
  			goto out;
  
-@@ -11552,7 +11552,7 @@ static void __get_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs)
+@@ -11556,7 +11556,7 @@ static void __get_regs(struct kvm_vcpu *
  
  int kvm_arch_vcpu_ioctl_get_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs)
  {
@@ -188,7 +179,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -11597,7 +11597,7 @@ static void __set_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs)
+@@ -11601,7 +11601,7 @@ static void __set_regs(struct kvm_vcpu *
  
  int kvm_arch_vcpu_ioctl_set_regs(struct kvm_vcpu *vcpu, struct kvm_regs *regs)
  {
@@ -197,7 +188,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -11673,7 +11673,7 @@ static void __get_sregs2(struct kvm_vcpu *vcpu, struct kvm_sregs2 *sregs2)
+@@ -11677,7 +11677,7 @@ static void __get_sregs2(struct kvm_vcpu
  int kvm_arch_vcpu_ioctl_get_sregs(struct kvm_vcpu *vcpu,
  				  struct kvm_sregs *sregs)
  {
@@ -206,7 +197,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -11944,7 +11944,7 @@ int kvm_arch_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
+@@ -11948,7 +11948,7 @@ int kvm_arch_vcpu_ioctl_set_sregs(struct
  {
  	int ret;
  
@@ -215,7 +206,7 @@ index 2d507ec1d898..ade5835ca625 100644
  	    vcpu->arch.guest_state_protected)
  		return -EINVAL;
  
-@@ -12065,7 +12065,7 @@ int kvm_arch_vcpu_ioctl_get_fpu(struct kvm_vcpu *vcpu, struct kvm_fpu *fpu)
+@@ -12069,7 +12069,7 @@ int kvm_arch_vcpu_ioctl_get_fpu(struct k
  	struct fxregs_state *fxsave;
  
  	if (fpstate_is_confidential(&vcpu->arch.guest_fpu))
@@ -224,7 +215,7 @@ index 2d507ec1d898..ade5835ca625 100644
  
  	vcpu_load(vcpu);
  
-@@ -12088,7 +12088,7 @@ int kvm_arch_vcpu_ioctl_set_fpu(struct kvm_vcpu *vcpu, struct kvm_fpu *fpu)
+@@ -12092,7 +12092,7 @@ int kvm_arch_vcpu_ioctl_set_fpu(struct k
  	struct fxregs_state *fxsave;
  
  	if (fpstate_is_confidential(&vcpu->arch.guest_fpu))
@@ -233,7 +224,7 @@ index 2d507ec1d898..ade5835ca625 100644
  
  	vcpu_load(vcpu);
  
-@@ -12637,7 +12637,7 @@ int kvm_arch_init_vm(struct kvm *kvm, unsigned long type)
+@@ -12641,7 +12641,7 @@ int kvm_arch_init_vm(struct kvm *kvm, un
  		return -EINVAL;
  
  	kvm->arch.vm_type = type;
@@ -242,8 +233,6 @@ index 2d507ec1d898..ade5835ca625 100644
  		(type == KVM_X86_SW_PROTECTED_VM);
  
  	ret = kvm_page_track_init(kvm);
-diff --git a/include/linux/cc_platform.h b/include/linux/cc_platform.h
-index 60693a145894..86acbcad590b 100644
 --- a/include/linux/cc_platform.h
 +++ b/include/linux/cc_platform.h
 @@ -91,6 +91,7 @@ enum cc_attr {
@@ -262,11 +251,9 @@ index 60693a145894..86acbcad590b 100644
  };
  
  #ifdef CONFIG_ARCH_HAS_CC_PLATFORM
-diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
-index 75836998662a..9554373d19fa 100644
 --- a/include/linux/kvm_host.h
 +++ b/include/linux/kvm_host.h
-@@ -842,6 +842,11 @@ struct kvm {
+@@ -849,6 +849,11 @@ struct kvm {
  	struct xarray mem_attr_array;
  #endif
  	char stats_id[KVM_STATS_NAME_SIZE];
@@ -278,21 +265,3 @@ index 75836998662a..9554373d19fa 100644
  };
  
  #define kvm_err(fmt, ...) \
-diff --git a/include/uapi/linux/kvm.h b/include/uapi/linux/kvm.h
-index f94b4a7dfd87..019d4ea0c10d 100644
---- a/include/uapi/linux/kvm.h
-+++ b/include/uapi/linux/kvm.h
-@@ -553,8 +553,10 @@ struct kvm_run {
- 			__u64 gpa;
- 			__u64 size;
- 		} memory_fault;
-+#ifndef __GENKSYMS__
- 		/* KVM_EXIT_VMGEXIT */
- 		struct kvm_user_vmgexit vmgexit;
-+#endif
- 		/* Fix the size of the union. */
- 		char padding[256];
- 	};
--- 
-2.45.1
-
