@@ -73,17 +73,6 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  };
  
  struct kvm_vm_stat {
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -266,6 +266,8 @@ struct kvm_gfn_range {
- 	gfn_t start;
- 	gfn_t end;
- 	union kvm_mmu_notifier_arg arg;
-+	bool only_private;
-+	bool only_shared;
- 	bool may_block;
- };
- bool kvm_unmap_gfn_range(struct kvm *kvm, struct kvm_gfn_range *range);
 --- a/include/linux/kvm_types.h
 +++ b/include/linux/kvm_types.h
 @@ -94,6 +94,7 @@ struct gfn_to_pfn_cache {
