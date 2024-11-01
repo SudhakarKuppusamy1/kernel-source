@@ -1,0 +1,52 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: 2f9d1a193b18948a4ac82c503dff0e9392a4520b
+References: jsc#PED-6143
+From: Chao Gao <chao.gao@intel.com>
+Date: Thu, 29 Aug 2024 11:15:39 +0800
+Subject: [PATCH 014/155] KVM: x86/mmu: Assume guest MMIOs are shared
+
+TODO: Drop this patch once the common patch is merged.
+
+When memory slot isn't found for kvm page fault, handle it as MMIO.
+
+The guest of TDX_VM, SNP_VM, or SW_PROTECTED_VM don't necessarily convert
+the virtual MMIO range to shared before accessing it.  When the guest tries
+to access the virtual device's MMIO without any private/shared conversion,
+An NPT fault or EPT violation is raised first to find private-shared
+mismatch.  Don't raise KVM_EXIT_MEMORY_FAULT, fall back to KVM_PFN_NOLSLOT.
+
+Signed-off-by: Chao Gao <chao.gao@intel.com>
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/kvm/mmu/mmu.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index 0bd8c01a3fc9..d0b8299d98bf 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -4365,8 +4365,18 @@ static int kvm_faultin_pfn_private(struct kvm_vcpu *vcpu,
+ static int __kvm_faultin_pfn(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault)
+ {
+ 	bool async;
++	bool force_mmio;
+ 
+-	if (fault->is_private)
++	/*
++	 * !fault->slot means MMIO for SNP and TDX.  Don't require explicit GPA
++	 * conversion for MMIO because MMIO is assigned at the boot time.  Fall
++	 * to !is_private case to get pfn = KVM_PFN_NOSLOT.
++	 */
++	force_mmio = !fault->slot &&
++		vcpu->kvm->arch.vm_type != KVM_X86_DEFAULT_VM &&
++		vcpu->kvm->arch.vm_type != KVM_X86_SW_PROTECTED_VM;
++
++	if (!force_mmio && fault->is_private)
+ 		return kvm_faultin_pfn_private(vcpu, fault);
+ 
+ 	async = false;
+-- 
+2.43.0
+
