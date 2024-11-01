@@ -1,0 +1,44 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: eb425ea04370b4b5459d3ba6ab28ad5a4e4e5a8c
+References: jsc#PED-6143
+From: Isaku Yamahata <isaku.yamahata@intel.com>
+Date: Thu, 29 Aug 2024 16:22:45 +0800
+Subject: [PATCH 015/155] KVM: x86: Add is_vm_type_supported callback
+
+For SEV_SNP and TDX, allow the backend can override the supported vm type.
+Add KVM_X86_SNP_VM and KVM_X86_TDX_VM to reserve the bit.
+
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/include/uapi/asm/kvm.h | 1 +
+ arch/x86/kvm/x86.c              | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/x86/include/uapi/asm/kvm.h b/arch/x86/include/uapi/asm/kvm.h
+index bf57a824f722..f0b0bf355d5c 100644
+--- a/arch/x86/include/uapi/asm/kvm.h
++++ b/arch/x86/include/uapi/asm/kvm.h
+@@ -923,5 +923,6 @@ struct kvm_hyperv_eventfd {
+ #define KVM_X86_SEV_VM		2
+ #define KVM_X86_SEV_ES_VM	3
+ #define KVM_X86_SNP_VM		4
++#define KVM_X86_TDX_VM          5
+ 
+ #endif /* _ASM_X86_KVM_H */
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index b78e648c3d74..715d90f6d347 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -4815,6 +4815,7 @@ int kvm_vm_ioctl_check_extension(struct kvm *kvm, long ext)
+ 		break;
+ 	case KVM_CAP_VM_TYPES:
+ 		r = kvm_caps.supported_vm_types;
++		printk("XXX: kvm_caps.supported_vm_types = %x\n\n", r);
+ 		break;
+ 	case KVM_CAP_READONLY_MEM:
+ 		r = kvm ? kvm_arch_has_readonly_mem(kvm) : 1;
+-- 
+2.43.0
+
