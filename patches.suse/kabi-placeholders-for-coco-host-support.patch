@@ -28,14 +28,6 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  	union kvm_cpu_role cpu_role;
  	union kvm_mmu_page_role root_role;
  
-@@ -815,6 +816,7 @@ struct kvm_vcpu_arch {
- 	struct kvm_mmu_memory_cache mmu_shadow_page_cache;
- 	struct kvm_mmu_memory_cache mmu_shadowed_info_cache;
- 	struct kvm_mmu_memory_cache mmu_page_header_cache;
-+	struct kvm_mmu_memory_cache mmu_private_spt_cache;
- 
- 	/*
- 	 * QEMU userspace and the guest each have their own FPU state.
 @@ -1316,6 +1318,8 @@ struct kvm_arch {
  	 */
  	spinlock_t mmu_unsync_pages_lock;
