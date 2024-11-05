@@ -64,15 +64,6 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  
  	seqcount_raw_spinlock_t pvclock_sc;
  	bool use_master_clock;
-@@ -1509,6 +1516,8 @@ struct kvm_arch {
- 	 */
- #define SPLIT_DESC_CACHE_MIN_NR_OBJECTS (SPTE_ENT_PER_PAGE + 1)
- 	struct kvm_mmu_memory_cache split_desc_cache;
-+
-+	gfn_t gfn_shared_mask;
- };
- 
- struct kvm_vm_stat {
 --- a/include/linux/kvm_types.h
 +++ b/include/linux/kvm_types.h
 @@ -94,6 +94,7 @@ struct gfn_to_pfn_cache {
