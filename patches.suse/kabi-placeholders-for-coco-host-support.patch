@@ -20,17 +20,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 
 --- a/arch/x86/include/asm/kvm_host.h
 +++ b/arch/x86/include/asm/kvm_host.h
-@@ -350,7 +350,8 @@ union kvm_mmu_page_role {
- 		unsigned ad_disabled:1;
- 		unsigned guest_mode:1;
- 		unsigned passthrough:1;
--		unsigned :5;
-+		unsigned is_private:1;
-+		unsigned :4;
- 
- 		/*
- 		 * This is left at the top of the word so that
-@@ -458,6 +459,7 @@ struct kvm_mmu {
+@@ -458,6 +458,7 @@ struct kvm_mmu {
  	int (*sync_spte)(struct kvm_vcpu *vcpu,
  			 struct kvm_mmu_page *sp, int i);
  	struct kvm_mmu_root_info root;
@@ -38,7 +28,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  	union kvm_cpu_role cpu_role;
  	union kvm_mmu_page_role root_role;
  
-@@ -815,6 +817,7 @@ struct kvm_vcpu_arch {
+@@ -815,6 +816,7 @@ struct kvm_vcpu_arch {
  	struct kvm_mmu_memory_cache mmu_shadow_page_cache;
  	struct kvm_mmu_memory_cache mmu_shadowed_info_cache;
  	struct kvm_mmu_memory_cache mmu_page_header_cache;
@@ -46,7 +36,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  
  	/*
  	 * QEMU userspace and the guest each have their own FPU state.
-@@ -1316,6 +1319,8 @@ struct kvm_arch {
+@@ -1316,6 +1318,8 @@ struct kvm_arch {
  	 */
  	spinlock_t mmu_unsync_pages_lock;
  
@@ -55,7 +45,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  	struct iommu_domain *iommu_domain;
  	bool iommu_noncoherent;
  #define __KVM_HAVE_ARCH_NONCOHERENT_DMA
-@@ -1364,6 +1369,8 @@ struct kvm_arch {
+@@ -1364,6 +1368,8 @@ struct kvm_arch {
  
  	u32 default_tsc_khz;
  	bool user_set_tsc;
