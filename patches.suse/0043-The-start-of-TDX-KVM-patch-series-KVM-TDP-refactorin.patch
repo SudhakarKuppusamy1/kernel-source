@@ -1,0 +1,34 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: 7d0623953b738b4af32d83e8be657bfb60479425
+References: jsc#PED-6143
+From: Isaku Yamahata <isaku.yamahata@intel.com>
+Date: Fri, 18 Feb 2022 12:28:23 -0800
+Subject: [PATCH 043/155] The start of TDX KVM patch series: KVM TDP
+ refactoring for TDX
+
+This empty commit is to mark the start of patch series of KVM TDP
+refactoring for TDX.
+
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ Documentation/virt/kvm/intel-tdx-layer-status.rst | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/virt/kvm/intel-tdx-layer-status.rst b/Documentation/virt/kvm/intel-tdx-layer-status.rst
+index 8b8186e7bfeb..e893a3d714c7 100644
+--- a/Documentation/virt/kvm/intel-tdx-layer-status.rst
++++ b/Documentation/virt/kvm/intel-tdx-layer-status.rst
+@@ -25,6 +25,6 @@ Patch Layer status
+ * TD vcpu enter/exit:                   Not yet
+ * TD vcpu interrupts/exit/hypercall:    Not yet
+ 
+-* KVM MMU GPA shared bits:              Applying
+-* KVM TDP refactoring for TDX:          Not yet
++* KVM MMU GPA shared bits:              Applied
++* KVM TDP refactoring for TDX:          Applying
+ * KVM TDP MMU hooks:                    Not yet
+-- 
+2.43.0
+
