@@ -1,0 +1,39 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: c3e2dd4ecd466161135b95d83bd70fb85322a33e
+References: jsc#PED-6143
+From: Yan Zhao <yan.y.zhao@intel.com>
+Date: Wed, 11 Sep 2024 23:10:12 +0800
+Subject: [PATCH 053/155] KVM: x86/mmu: Do not enable page track for TD guest
+
+TDX does not support write protection and hence page track.
+Though !tdp_enabled and kvm_shadow_root_allocated(kvm) are always false
+for TD guest, should also return false when external write tracking is
+enabled.
+
+Cc: Yuan Yao <yuan.yao@linux.intel.com>
+Signed-off-by: Yan Zhao <yan.y.zhao@intel.com>
+Reviewed-by: Binbin Wu <binbin.wu@linux.intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/kvm/mmu/page_track.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/x86/kvm/mmu/page_track.c b/arch/x86/kvm/mmu/page_track.c
+index 561c331fd6ec..22dd77d1e5ed 100644
+--- a/arch/x86/kvm/mmu/page_track.c
++++ b/arch/x86/kvm/mmu/page_track.c
+@@ -23,6 +23,10 @@
+ 
+ bool kvm_page_track_write_tracking_enabled(struct kvm *kvm)
+ {
++
++	if (kvm->arch.vm_type == KVM_X86_TDX_VM)
++		return false;
++
+ 	return IS_ENABLED(CONFIG_KVM_EXTERNAL_WRITE_TRACKING) ||
+ 	       !tdp_enabled || kvm_shadow_root_allocated(kvm);
+ }
+-- 
+2.43.0
+
