@@ -45,7 +45,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  	u64 (*get_l2_tsc_offset)(struct kvm_vcpu *vcpu);
 @@ -1826,6 +1812,20 @@
  	void (*gmem_invalidate)(kvm_pfn_t start, kvm_pfn_t end);
- 	int (*private_max_mapping_level)(struct kvm *kvm, kvm_pfn_t pfn);
+ 	int (*private_max_mapping_level)(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn, bool is_private, u8 *max_level);
  	const bool x2apic_icr_is_split;
 +	int (*offline_cpu)(void);
 +	int (*max_vcpus)(struct kvm *kvm);

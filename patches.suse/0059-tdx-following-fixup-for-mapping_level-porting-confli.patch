@@ -1,0 +1,136 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: db99408cc2bb6d2801caa9b43d0a0a1f119deb8c
+References: jsc#PED-6143
+From: Feng Tang <feng.tang@intel.com>
+Date: Thu, 12 Sep 2024 15:04:06 +0800
+Subject: [PATCH 059/155] tdx: following fixup for mapping_level porting
+ conflict
+
+Signed-off-by: Feng Tang <feng.tang@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/include/asm/kvm_host.h |  2 +-
+ arch/x86/kvm/mmu/mmu.c          | 19 ++++++++++++-------
+ arch/x86/kvm/svm/sev.c          | 11 +++++++----
+ arch/x86/kvm/svm/svm.h          |  7 +++++--
+ 4 files changed, 25 insertions(+), 14 deletions(-)
+
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 4d64911b7879..277005f10afe 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1865,7 +1865,7 @@ struct kvm_x86_ops {
+ 	void *(*alloc_apic_backing_page)(struct kvm_vcpu *vcpu);
+ 	int (*gmem_prepare)(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn, int max_order);
+ 	void (*gmem_invalidate)(kvm_pfn_t start, kvm_pfn_t end);
+-	int (*private_max_mapping_level)(struct kvm *kvm, kvm_pfn_t pfn);
++	int (*private_max_mapping_level)(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn, bool is_private, u8 *max_level);
+ };
+ 
+ struct kvm_x86_nested_ops {
+diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
+index bd6368eac7de..d26ecec97086 100644
+--- a/arch/x86/kvm/mmu/mmu.c
++++ b/arch/x86/kvm/mmu/mmu.c
+@@ -4344,23 +4344,27 @@ static inline u8 kvm_max_level_for_order(int order)
+ 	return PG_LEVEL_4K;
+ }
+ 
+-static u8 kvm_max_private_mapping_level(struct kvm *kvm, kvm_pfn_t pfn,
+-					u8 max_level, int gmem_order)
++static u8 kvm_max_private_mapping_level(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn,
++					u8 max_level, int gmem_order, bool is_private)
+ {
+ 	u8 req_max_level;
+ 
+ 	if (max_level == PG_LEVEL_4K)
+ 		return PG_LEVEL_4K;
+ 
+-	max_level = min(kvm_max_level_for_order(gmem_order), max_level);
+-	if (max_level == PG_LEVEL_4K)
++	req_max_level = min(kvm_max_level_for_order(gmem_order), max_level);
++	if (req_max_level == PG_LEVEL_4K)
+ 		return PG_LEVEL_4K;
+ 
+-	req_max_level = static_call(kvm_x86_private_max_mapping_level)(kvm, pfn);
++	#if 0
++	req_max_level = static_call(kvm_x86_private_max_mapping_level)(kvm, pfn, gfn, is_private);
+ 	if (req_max_level)
+ 		max_level = min(max_level, req_max_level);
++	#else
++	static_call(kvm_x86_private_max_mapping_level)(kvm, pfn, gfn, is_private, &req_max_level);
++	#endif
+ 
+-	return max_level;
++	return req_max_level;
+ }
+ 
+ static int kvm_faultin_pfn_private(struct kvm_vcpu *vcpu,
+@@ -4382,7 +4386,8 @@ static int kvm_faultin_pfn_private(struct kvm_vcpu *vcpu,
+ 
+ 	fault->map_writable = !(fault->slot->flags & KVM_MEM_READONLY);
+ 	fault->max_level = kvm_max_private_mapping_level(vcpu->kvm, fault->pfn,
+-							 fault->max_level, max_order);
++							 fault->gfn, fault->max_level, max_order,
++							 fault->is_private);
+ 
+ 	return RET_PF_CONTINUE;
+ }
+diff --git a/arch/x86/kvm/svm/sev.c b/arch/x86/kvm/svm/sev.c
+index 714c517dd4b7..e0390410c737 100644
+--- a/arch/x86/kvm/svm/sev.c
++++ b/arch/x86/kvm/svm/sev.c
+@@ -4936,17 +4936,20 @@ void sev_gmem_invalidate(kvm_pfn_t start, kvm_pfn_t end)
+ 	}
+ }
+ 
+-int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn)
++int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn,
++				  bool is_private, u8 *max_level)
+ {
+ 	int level, rc;
+ 	bool assigned;
+ 
+ 	if (!sev_snp_guest(kvm))
+-		return 0;
++		*max_level = 0;
+ 
+ 	rc = snp_lookup_rmpentry(pfn, &assigned, &level);
+ 	if (rc || !assigned)
+-		return PG_LEVEL_4K;
++		*max_level = PG_LEVEL_4K;
++	else
++		*max_level = level;
+ 
+-	return level;
++	return 0;
+ }
+diff --git a/arch/x86/kvm/svm/svm.h b/arch/x86/kvm/svm/svm.h
+index 76107c7d0595..0323c0768f59 100644
+--- a/arch/x86/kvm/svm/svm.h
++++ b/arch/x86/kvm/svm/svm.h
+@@ -748,7 +748,8 @@ void sev_handle_rmp_fault(struct kvm_vcpu *vcpu, gpa_t gpa, u64 error_code);
+ void sev_snp_init_protected_guest_state(struct kvm_vcpu *vcpu);
+ int sev_gmem_prepare(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn, int max_order);
+ void sev_gmem_invalidate(kvm_pfn_t start, kvm_pfn_t end);
+-int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn);
++int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn,
++				  bool is_private, u8 *max_level);
+ #else
+ static inline struct page *snp_safe_alloc_page(struct kvm_vcpu *vcpu) {
+ 	return alloc_page(GFP_KERNEL_ACCOUNT | __GFP_ZERO);
+@@ -775,7 +776,9 @@ static inline int sev_gmem_prepare(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn, in
+ 	return 0;
+ }
+ static inline void sev_gmem_invalidate(kvm_pfn_t start, kvm_pfn_t end) {}
+-static inline int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn)
++
++static inline int sev_private_max_mapping_level(struct kvm *kvm, kvm_pfn_t pfn, gfn_t gfn,
++				  bool is_private, u8 *max_level)
+ {
+ 	return 0;
+ }
+-- 
+2.43.0
+
