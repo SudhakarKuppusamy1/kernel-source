@@ -20,15 +20,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 
 --- a/arch/x86/include/asm/kvm_host.h
 +++ b/arch/x86/include/asm/kvm_host.h
-@@ -458,6 +458,7 @@ struct kvm_mmu {
- 	int (*sync_spte)(struct kvm_vcpu *vcpu,
- 			 struct kvm_mmu_page *sp, int i);
- 	struct kvm_mmu_root_info root;
-+	hpa_t private_root_hpa;
- 	union kvm_cpu_role cpu_role;
- 	union kvm_mmu_page_role root_role;
- 
-@@ -1316,6 +1318,8 @@ struct kvm_arch {
+@@ -1316,6 +1316,8 @@ struct kvm_arch {
  	 */
  	spinlock_t mmu_unsync_pages_lock;
  
@@ -37,7 +29,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  	struct iommu_domain *iommu_domain;
  	bool iommu_noncoherent;
  #define __KVM_HAVE_ARCH_NONCOHERENT_DMA
-@@ -1364,6 +1368,8 @@ struct kvm_arch {
+@@ -1364,6 +1366,8 @@ struct kvm_arch {
  
  	u32 default_tsc_khz;
  	bool user_set_tsc;
