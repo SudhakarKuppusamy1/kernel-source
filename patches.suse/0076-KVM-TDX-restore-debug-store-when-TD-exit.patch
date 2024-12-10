@@ -1,0 +1,42 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: 49aebb251397f8084d14e5fa2f2e1ff0299b3df4
+References: jsc#PED-6143
+From: Isaku Yamahata <isaku.yamahata@intel.com>
+Date: Tue, 21 Dec 2021 18:38:23 -0800
+Subject: [PATCH 076/155] KVM: TDX: restore debug store when TD exit
+
+Because debug store is clobbered, restore it on TD exit.
+
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Reviewed-by: Paolo Bonzini <pbonzini@redhat.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/events/intel/ds.c | 1 +
+ arch/x86/kvm/vmx/tdx.c     | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/x86/events/intel/ds.c b/arch/x86/events/intel/ds.c
+index fa5ea65de0d0..1d0749d345d9 100644
+--- a/arch/x86/events/intel/ds.c
++++ b/arch/x86/events/intel/ds.c
+@@ -2545,3 +2545,4 @@ void perf_restore_debug_store(void)
+ 
+ 	wrmsrl(MSR_IA32_DS_AREA, (unsigned long)ds);
+ }
++EXPORT_SYMBOL_GPL(perf_restore_debug_store);
+diff --git a/arch/x86/kvm/vmx/tdx.c b/arch/x86/kvm/vmx/tdx.c
+index 95da4cad48c6..f4746761a36c 100644
+--- a/arch/x86/kvm/vmx/tdx.c
++++ b/arch/x86/kvm/vmx/tdx.c
+@@ -668,6 +668,7 @@ fastpath_t tdx_vcpu_run(struct kvm_vcpu *vcpu,  bool force_immediate_exit)
+ 	tdx_vcpu_enter_exit(tdx);
+ 
+ 	tdx_user_return_update_cache(vcpu);
++	perf_restore_debug_store();
+ 	tdx_restore_host_xsave_state(vcpu);
+ 	tdx->host_state_need_restore = true;
+ 
+-- 
+2.43.0
+

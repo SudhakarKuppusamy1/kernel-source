@@ -1,0 +1,49 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: 102f6179ed673315c610b4e0e0f9422d7f9ee88d
+References: jsc#PED-6143
+From: Sean Christopherson <seanjc@google.com>
+Date: Fri, 8 Apr 2022 09:24:39 -0700
+Subject: [PATCH 080/155] KVM: x86: Assume timer IRQ was injected if APIC state
+ is proteced
+
+If APIC state is protected, i.e. the vCPU is a TDX guest, assume a timer
+IRQ was injected when deciding whether or not to busy wait in the "timer
+advanced" path.  The "real" vIRR is not readable/writable, so trying to
+query for a pending timer IRQ will return garbage.
+
+Note, TDX can scour the PIR if it wants to be more precise and skip the
+"wait" call entirely.
+
+Signed-off-by: Sean Christopherson <seanjc@google.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/kvm/lapic.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/arch/x86/kvm/lapic.c b/arch/x86/kvm/lapic.c
+index 978420210f78..4554f70948ea 100644
+--- a/arch/x86/kvm/lapic.c
++++ b/arch/x86/kvm/lapic.c
+@@ -1789,8 +1789,17 @@ static void apic_update_lvtt(struct kvm_lapic *apic)
+ static bool lapic_timer_int_injected(struct kvm_vcpu *vcpu)
+ {
+ 	struct kvm_lapic *apic = vcpu->arch.apic;
+-	u32 reg = kvm_lapic_get_reg(apic, APIC_LVTT);
++	u32 reg;
+ 
++	/*
++	 * Assume a timer IRQ was "injected" if the APIC is protected.  KVM's
++	 * copy of the vIRR is bogus, it's the responsibility of the caller to
++	 * precisely check whether or not a timer IRQ is pending.
++	 */
++	if (apic->guest_apic_protected)
++		return true;
++
++	reg  = kvm_lapic_get_reg(apic, APIC_LVTT);
+ 	if (kvm_apic_hw_enabled(apic)) {
+ 		int vec = reg & APIC_VECTOR_MASK;
+ 		void *bitmap = apic->regs + APIC_ISR;
+-- 
+2.43.0
+
