@@ -51,7 +51,15 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
  
  	int (*set_hv_timer)(struct kvm_vcpu *vcpu, u64 guest_deadline_tsc,
  			    bool *expired);
-@@ -1826,6 +1812,21 @@
+@@ -1826,7 +1812,6 @@
+ 	int (*complete_emulated_msr)(struct kvm_vcpu *vcpu, int err);
+
+ 	void (*vcpu_deliver_sipi_vector)(struct kvm_vcpu *vcpu, u8 vector);
+-	void (*vcpu_deliver_init)(struct kvm_vcpu *vcpu);
+
+ 	/*
+ 	 * Returns vCPU specific APICv inhibit reasons
+@@ -1848,6 +1833,22 @@
  				  u64 *error_code, u8 *max_level);
  	void (*post_memory_mapping)(struct kvm_vcpu *vcpu,
  				    struct kvm_memory_mapping *mapping);
@@ -70,6 +78,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 +				    kvm_pfn_t pfn);
 +	int (*zap_private_spte)(struct kvm *kvm, gfn_t gfn, enum pg_level level);
 +	bool (*protected_apic_has_interrupt)(struct kvm_vcpu *vcpu);
++	void (*vcpu_deliver_init)(struct kvm_vcpu *vcpu);
  #endif
  };
  
