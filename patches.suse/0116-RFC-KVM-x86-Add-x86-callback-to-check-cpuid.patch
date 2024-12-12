@@ -1,0 +1,89 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: d27c8a0135124147f798c6078b349c2a38a040bc
+References: jsc#PED-6143
+From: Isaku Yamahata <isaku.yamahata@intel.com>
+Date: Mon, 16 Sep 2024 13:46:56 +0800
+Subject: [PATCH 116/155] RFC: KVM: x86: Add x86 callback to check cpuid
+
+The x86 backend should check the consistency of KVM_SET_CPUID2 because it
+has its constraint.  Add a callback for it.  The backend code will come as
+another patch.
+
+Suggested-by: Sean Christopherson <seanjc@google.com>
+Link: https://lore.kernel.org/lkml/ZDiGpCkXOcCm074O@google.com/
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/include/asm/kvm-x86-ops.h |  2 ++
+ arch/x86/include/asm/kvm_host.h    |  1 +
+ arch/x86/kvm/cpuid.c               | 20 ++++++++++++--------
+ 3 files changed, 15 insertions(+), 8 deletions(-)
+
+diff --git a/arch/x86/include/asm/kvm-x86-ops.h b/arch/x86/include/asm/kvm-x86-ops.h
+index 469fcff0099a..a1e5ad711e5b 100644
+--- a/arch/x86/include/asm/kvm-x86-ops.h
++++ b/arch/x86/include/asm/kvm-x86-ops.h
+@@ -19,6 +19,8 @@ KVM_X86_OP(hardware_disable)
+ KVM_X86_OP(hardware_unsetup)
+ KVM_X86_OP_OPTIONAL_RET0(offline_cpu)
+ KVM_X86_OP(has_emulated_msr)
++/* TODO: Once all backend implemented this op, remove _OPTIONAL_RET0. */
++KVM_X86_OP_OPTIONAL_RET0(vcpu_check_cpuid)
+ KVM_X86_OP(vcpu_after_set_cpuid)
+ KVM_X86_OP_OPTIONAL(max_vcpus);
+ KVM_X86_OP_OPTIONAL(vm_enable_cap)
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 35b3e1ef9024..2b745b4df10d 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1671,6 +1671,7 @@ struct kvm_x86_ops {
+ 	void (*hardware_unsetup)(void);
+ 	int (*offline_cpu)(void);
+ 	bool (*has_emulated_msr)(struct kvm *kvm, u32 index);
++	int (*vcpu_check_cpuid)(struct kvm_vcpu *vcpu, struct kvm_cpuid_entry2 *e2, int nent);
+ 	void (*vcpu_after_set_cpuid)(struct kvm_vcpu *vcpu);
+ 
+ 	unsigned int vm_size;
+diff --git a/arch/x86/kvm/cpuid.c b/arch/x86/kvm/cpuid.c
+index 7310d8a8a503..3835a244d31c 100644
+--- a/arch/x86/kvm/cpuid.c
++++ b/arch/x86/kvm/cpuid.c
+@@ -136,6 +136,7 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
+ {
+ 	struct kvm_cpuid_entry2 *best;
+ 	u64 xfeatures;
++	int r;
+ 
+ 	/*
+ 	 * The existing code assumes virtual address is 48-bit or 57-bit in the
+@@ -155,15 +156,18 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
+ 	 * enabling in the FPU, e.g. to expand the guest XSAVE state size.
+ 	 */
+ 	best = cpuid_entry2_find(entries, nent, 0xd, 0);
+-	if (!best)
+-		return 0;
+-
+-	xfeatures = best->eax | ((u64)best->edx << 32);
+-	xfeatures &= XFEATURE_MASK_USER_DYNAMIC;
+-	if (!xfeatures)
+-		return 0;
++	if (best) {
++		xfeatures = best->eax | ((u64)best->edx << 32);
++		xfeatures &= XFEATURE_MASK_USER_DYNAMIC;
++		if (xfeatures) {
++			r = fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu,
++							  xfeatures);
++			if (r)
++				return r;
++		}
++	}
+ 
+-	return fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu, xfeatures);
++	return static_call(kvm_x86_vcpu_check_cpuid)(vcpu, entries, nent);
+ }
+ 
+ /* Check whether the supplied CPUID data is equal to what is already set for the vCPU. */
+-- 
+2.43.0
+

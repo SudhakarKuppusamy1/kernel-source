@@ -8,12 +8,13 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 ---
 --- a/arch/x86/include/asm/kvm_host.h
 +++ b/arch/x86/include/asm/kvm_host.h
-@@ -1615,17 +1615,12 @@ struct kvm_x86_ops {
+@@ -1615,18 +1615,12 @@ struct kvm_x86_ops {
  	int (*hardware_enable)(void);
  	void (*hardware_disable)(void);
  	void (*hardware_unsetup)(void);
 -	int (*offline_cpu)(void);
  	bool (*has_emulated_msr)(struct kvm *kvm, u32 index);
+-	int (*vcpu_check_cpuid)(struct kvm_vcpu *vcpu, struct kvm_cpuid_entry2 *e2, int nent);
  	void (*vcpu_after_set_cpuid)(struct kvm_vcpu *vcpu);
  
  	unsigned int vm_size;
@@ -59,7 +60,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 
  	/*
  	 * Returns vCPU specific APICv inhibit reasons
-@@ -1848,6 +1833,22 @@
+@@ -1848,6 +1833,23 @@
  				  u64 *error_code, u8 *max_level);
  	void (*post_memory_mapping)(struct kvm_vcpu *vcpu,
  				    struct kvm_memory_mapping *mapping);
@@ -79,6 +80,7 @@ Signed-off-by: Juergen Gross <jgross@suse.com>
 +	int (*zap_private_spte)(struct kvm *kvm, gfn_t gfn, enum pg_level level);
 +	bool (*protected_apic_has_interrupt)(struct kvm_vcpu *vcpu);
 +	void (*vcpu_deliver_init)(struct kvm_vcpu *vcpu);
++	int (*vcpu_check_cpuid)(struct kvm_vcpu *vcpu, struct kvm_cpuid_entry2 *e2, int nent);
  #endif
  };
  
