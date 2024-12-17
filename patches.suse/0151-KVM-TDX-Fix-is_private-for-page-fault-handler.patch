@@ -1,0 +1,34 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: e0bc34c108e6efa8b761c743b19715042e351ab9
+References: jsc#PED-6143
+From: Feng Tang <feng.tang@intel.com>
+Date: Tue, 8 Oct 2024 19:58:32 +0800
+Subject: [PATCH 151/155] KVM: TDX: Fix is_private for page fault handler
+
+Otherwise the TDX page fault handler will fail to detect PF for private
+address.
+
+Signed-off-by: Feng Tang <feng.tang@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ arch/x86/kvm/mmu/mmu_internal.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/arch/x86/kvm/mmu/mmu_internal.h b/arch/x86/kvm/mmu/mmu_internal.h
+index 88e20acca6cb..ef4e84633b96 100644
+--- a/arch/x86/kvm/mmu/mmu_internal.h
++++ b/arch/x86/kvm/mmu/mmu_internal.h
+@@ -390,8 +390,7 @@ static inline int kvm_mmu_do_page_fault(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa,
+ 		.max_level = KVM_MAX_HUGEPAGE_LEVEL,
+ 		.req_level = PG_LEVEL_4K,
+ 		.goal_level = PG_LEVEL_4K,
+-		.is_private = err & PFERR_PRIVATE_ACCESS,
+-
++		.is_private = err & PFERR_GUEST_ENC_MASK,
+ 		.pfn = KVM_PFN_ERR_FAULT,
+ 		.hva = KVM_HVA_ERR_BAD,
+ 	};
+-- 
+2.43.0
+
