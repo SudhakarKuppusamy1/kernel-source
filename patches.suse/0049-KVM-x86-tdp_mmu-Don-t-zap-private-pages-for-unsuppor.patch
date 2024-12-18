@@ -165,8 +165,8 @@ index 3bdeca18223a..8c1101d1e376 100644
  
  	for_each_tdp_pte_min_level(iter, root, PG_LEVEL_4K, start, end) {
 @@ -884,13 +889,15 @@ static bool tdp_mmu_zap_leafs(struct kvm *kvm, struct kvm_mmu_page *root,
-  * true if a TLB flush is needed before releasing the MMU lock, i.e. if one or
-  * more SPTEs were zapped since the MMU lock was last acquired.
+  * Returns true if a TLB flush is needed before releasing the MMU lock, i.e. if
+  * one or more SPTEs were zapped since the MMU lock was last acquired.
   */
 -bool kvm_tdp_mmu_zap_leafs(struct kvm *kvm, gfn_t start, gfn_t end, bool flush)
 +bool kvm_tdp_mmu_zap_leafs(struct kvm *kvm, gfn_t start, gfn_t end, bool flush,
@@ -175,7 +175,7 @@ index 3bdeca18223a..8c1101d1e376 100644
  	struct kvm_mmu_page *root;
  
  	lockdep_assert_held_write(&kvm->mmu_lock);
- 	for_each_tdp_mmu_root_yield_safe(kvm, root)
+ 	for_each_valid_tdp_mmu_root_yield_safe(kvm, root, -1)
 -		flush = tdp_mmu_zap_leafs(kvm, root, start, end, true, flush);
 +		flush = tdp_mmu_zap_leafs(kvm, root, start, end, true, flush,
 +					  zap_private && is_private_sp(root));
