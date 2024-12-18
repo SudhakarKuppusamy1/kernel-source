@@ -184,7 +184,7 @@ index 3bdeca18223a..8c1101d1e376 100644
  }
 @@ -965,7 +972,7 @@ void kvm_tdp_mmu_zap_invalidated_roots(struct kvm *kvm)
   * Note, kvm_tdp_mmu_zap_invalidated_roots() is gifted the TDP MMU's reference.
-  * See kvm_tdp_mmu_get_vcpu_root_hpa().
+  * See kvm_tdp_mmu_alloc_root().
   */
 -void kvm_tdp_mmu_invalidate_all_roots(struct kvm *kvm)
 +void kvm_tdp_mmu_invalidate_all_roots(struct kvm *kvm, bool skip_private)
