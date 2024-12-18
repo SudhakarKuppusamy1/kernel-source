@@ -130,20 +130,22 @@ diff --git a/arch/x86/kvm/mmu/mmu.c b/arch/x86/kvm/mmu/mmu.c
 index c4c5162de2f0..e37f59ea865d 100644
 --- a/arch/x86/kvm/mmu/mmu.c
 +++ b/arch/x86/kvm/mmu/mmu.c
-@@ -3713,8 +3713,11 @@ static int mmu_alloc_direct_roots(struct kvm_vcpu *vcpu)
- 		goto out_unlock;
+@@ -3713,8 +3713,13 @@ static int mmu_alloc_direct_roots(struct kvm_vcpu *vcpu)
+ 	unsigned i;
+ 	int r;
  
- 	if (tdp_mmu_enabled) {
--		root = kvm_tdp_mmu_get_vcpu_root_hpa(vcpu);
--		mmu->root.hpa = root;
+-	if (tdp_mmu_enabled)
+-		return kvm_tdp_mmu_alloc_root(vcpu);
++	if (tdp_mmu_enabled) {
 +		if (kvm_gfn_shared_mask(vcpu->kvm) &&
 +		    !VALID_PAGE(mmu->private_root_hpa))
-+			mmu->private_root_hpa = kvm_tdp_mmu_get_vcpu_root_hpa(vcpu, true);
++			kvm_tdp_mmu_alloc_root(vcpu, true);
 +
-+		mmu->root.hpa = kvm_tdp_mmu_get_vcpu_root_hpa(vcpu, false);
- 	} else if (shadow_root_level >= PT64_ROOT_4LEVEL) {
- 		root = mmu_alloc_root(vcpu, 0, 0, shadow_root_level);
- 		mmu->root.hpa = root;
++		kvm_tdp_mmu_alloc_root(vcpu, false);
++	}
+ 
+ 	write_lock(&vcpu->kvm->mmu_lock);
+ 	r = make_mmu_pages_available(vcpu);
 @@ -4819,6 +4825,7 @@ int kvm_mmu_map_tdp_page(struct kvm_vcpu *vcpu, gpa_t gpa, u64 error_code,
  	};
  
@@ -244,21 +246,31 @@ index d4613d3975c7..41e99814feb2 100644
  	trace_kvm_mmu_get_page(sp, true);
  }
  
--hpa_t kvm_tdp_mmu_get_vcpu_root_hpa(struct kvm_vcpu *vcpu)
-+hpa_t kvm_tdp_mmu_get_vcpu_root_hpa(struct kvm_vcpu *vcpu, bool private)
+-int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
++int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu, bool private)
  {
- 	union kvm_mmu_page_role role = vcpu->arch.mmu->root_role;
- 	struct kvm *kvm = vcpu->kvm;
+ 	struct kvm_mmu *mmu = vcpu->arch.mmu;
+ 	union kvm_mmu_page_role role = mmu->root_role;
 @@ -239,6 +244,8 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
- 	refcount_set(&root->tdp_mmu_root_count, 2);
  
  	spin_lock(&kvm->arch.tdp_mmu_pages_lock);
+ 
 +	if (private)
 +		kvm_mmu_page_role_set_private(&role);
- 	list_add_rcu(&root->link, &kvm->arch.tdp_mmu_roots);
- 	spin_unlock(&kvm->arch.tdp_mmu_pages_lock);
- 
-@@ -248,8 +250,8 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
+ 	/*
+ 	 * Recheck for an existing root after acquiring the pages lock, another
+ 	 * vCPU may have raced ahead and created a new usable root.  Manually
+@@ -275,14 +282,17 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
+ 	 * and actually consuming the root if it's invalidated after dropping
+ 	 * mmu_lock, and the root can't be freed as this vCPU holds a reference.
+ 	 */
+-	mmu->root.hpa = __pa(root->spt);
++	if (private)
++		mmu->private_root_hpa = __pa(root->spt);
++	else
++		mmu->root.hpa = __pa(root->spt);
+ 	mmu->root.pgd = 0;
+ 	return 0;
  }
  
  static void handle_changed_spte(struct kvm *kvm, int as_id, gfn_t gfn,
@@ -728,8 +740,8 @@ index 82d69da127b6..fbcf804fb4a3 100644
  void kvm_mmu_init_tdp_mmu(struct kvm *kvm);
  void kvm_mmu_uninit_tdp_mmu(struct kvm *kvm);
  
--hpa_t kvm_tdp_mmu_get_vcpu_root_hpa(struct kvm_vcpu *vcpu);
-+hpa_t kvm_tdp_mmu_get_vcpu_root_hpa(struct kvm_vcpu *vcpu, bool private);
+-int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu);
++int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu, bool private);
  
  __must_check static inline bool kvm_tdp_mmu_get_root(struct kvm_mmu_page *root)
  {

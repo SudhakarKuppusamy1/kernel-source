@@ -1,0 +1,34 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: d442a462af9e502daf7dffe98a8a638cd0f27e91
+References: jsc#PED-6143
+From: Yuan Yao <yuan.yao@intel.com>
+Date: Wed, 27 Mar 2024 13:41:05 +0800
+Subject: [PATCH 140/155] KVM: TDX: Return -EINTR for KVM_MEMORY_MAPPING when
+ signal pending
+
+Return -EINTR for signal pending. The -ERESTARTSYS is not
+available to user space for interrupted system call.
+
+Signed-off-by: Yuan Yao <yuan.yao@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ virt/kvm/kvm_main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index 1cbd82adae8f..62560ed8941d 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -4485,7 +4485,7 @@ static int kvm_vcpu_memory_mapping(struct kvm_vcpu *vcpu,
+ 
+ 	while (mapping->nr_pages) {
+ 		if (signal_pending(current)) {
+-			r = -ERESTARTSYS;
++			r = -EINTR;
+ 			break;
+ 		}
+ 
+-- 
+2.43.0
+
