@@ -111,12 +111,12 @@ index c7dc49ee7388..a6abcb9fb4f1 100644
 -	tdp_mmu_init_sp(child_sp, iter->sptep, iter->gfn, role);
 -}
 -
- static struct kvm_mmu_page *kvm_tdp_mmu_try_get_root(struct kvm_vcpu *vcpu)
+ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
  {
- 	union kvm_mmu_page_role role = vcpu->arch.mmu->root_role;
+ 	struct kvm_mmu *mmu = vcpu->arch.mmu;
 @@ -260,8 +252,8 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
- 	if (root)
- 		goto out_unlock;
+ 			goto out_spin_unlock;
+ 	}
  
 -	root = tdp_mmu_alloc_sp(vcpu);
 -	tdp_mmu_init_sp(root, NULL, 0, role);

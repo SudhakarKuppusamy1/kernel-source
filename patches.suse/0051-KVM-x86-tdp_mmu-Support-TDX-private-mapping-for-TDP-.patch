@@ -243,7 +243,7 @@ index d4613d3975c7..41e99814feb2 100644
  	return sp;
  }
 @@ -216,7 +221,7 @@ static void tdp_mmu_init_sp(struct kvm_mmu_page *sp, tdp_ptep_t sptep,
- 	return NULL;
+ 	trace_kvm_mmu_get_page(sp, true);
  }
  
 -int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
@@ -252,15 +252,25 @@ index d4613d3975c7..41e99814feb2 100644
  	struct kvm_mmu *mmu = vcpu->arch.mmu;
  	union kvm_mmu_page_role role = mmu->root_role;
 @@ -239,6 +244,8 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
- 	refcount_set(&root->tdp_mmu_root_count, 2);
  
  	spin_lock(&kvm->arch.tdp_mmu_pages_lock);
+ 
 +	if (private)
 +		kvm_mmu_page_role_set_private(&role);
- 	list_add_rcu(&root->link, &kvm->arch.tdp_mmu_roots);
- 	spin_unlock(&kvm->arch.tdp_mmu_pages_lock);
- 
-@@ -248,8 +250,8 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
+ 	/*
+ 	 * Recheck for an existing root after acquiring the pages lock, another
+ 	 * vCPU may have raced ahead and created a new usable root.  Manually
+@@ -275,14 +282,17 @@ int kvm_tdp_mmu_alloc_root(struct kvm_vcpu *vcpu)
+ 	 * and actually consuming the root if it's invalidated after dropping
+ 	 * mmu_lock, and the root can't be freed as this vCPU holds a reference.
+ 	 */
+-	mmu->root.hpa = __pa(root->spt);
++	if (private)
++		mmu->private_root_hpa = __pa(root->spt);
++	else
++		mmu->root.hpa = __pa(root->spt);
+ 	mmu->root.pgd = 0;
+ 	return 0;
  }
  
  static void handle_changed_spte(struct kvm *kvm, int as_id, gfn_t gfn,
