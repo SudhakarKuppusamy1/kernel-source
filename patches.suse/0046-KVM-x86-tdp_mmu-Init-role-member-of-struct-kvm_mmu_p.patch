@@ -60,8 +60,8 @@ index c7dc49ee7388..a6abcb9fb4f1 100644
 --- a/arch/x86/kvm/mmu/tdp_mmu.c
 +++ b/arch/x86/kvm/mmu/tdp_mmu.c
 @@ -184,24 +184,30 @@ static struct kvm_mmu_page *tdp_mmu_next_root(struct kvm *kvm,
- 		    _as_id >= 0 && kvm_mmu_page_as_id(_root) != _as_id) {	\
- 		} else
+ #define for_each_valid_tdp_mmu_root(_kvm, _root, _as_id)		\
+ 	__for_each_tdp_mmu_root(_kvm, _root, _as_id, true)
  
 -static struct kvm_mmu_page *tdp_mmu_alloc_sp(struct kvm_vcpu *vcpu)
 +static struct kvm_mmu_page *tdp_mmu_alloc_sp(struct kvm_vcpu *vcpu,
