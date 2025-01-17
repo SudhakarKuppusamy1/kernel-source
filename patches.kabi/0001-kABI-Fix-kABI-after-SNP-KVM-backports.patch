@@ -103,6 +103,17 @@ Signed-off-by: Joerg Roedel <jroedel@suse.de>
  	}
  
  	if (!pause_filter_count || !pause_filter_thresh)
+--- a/arch/x86/kvm/vmx/tdx.c
++++ b/arch/x86/kvm/vmx/tdx.c
+@@ -596,7 +596,7 @@ int tdx_vm_init(struct kvm *kvm)
+ //	kvm_mmu_set_mmio_spte_value(kvm, 0);
+ 	kvm->arch.shadow_mmio_value = 0;
+ 
+-	kvm->arch.has_private_mem = true;
++	kvm->has_private_mem = true;
+ 
+ 	/*
+ 	 * This function initializes only KVM software construct.  It doesn't
 --- a/arch/x86/kvm/x86.c
 +++ b/arch/x86/kvm/x86.c
 @@ -5559,7 +5559,7 @@ static int kvm_vcpu_ioctl_x86_get_debugr
