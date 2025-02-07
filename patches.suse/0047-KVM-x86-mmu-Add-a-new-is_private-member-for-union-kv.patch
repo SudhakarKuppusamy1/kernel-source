@@ -80,9 +80,9 @@ index ef793c459b05..1e56f3a06331 100644
 +	return is_private_sp(sptep_to_sp(sptep));
 +}
 +
- static inline bool is_mmio_spte(u64 spte)
+ static inline bool is_mmio_spte(struct kvm *kvm, u64 spte)
  {
- 	return (spte & shadow_mmio_mask) == shadow_mmio_value &&
+ 	return (spte & shadow_mmio_mask) == kvm->arch.shadow_mmio_value &&
 -- 
 2.43.0
 
