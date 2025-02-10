@@ -52,12 +52,12 @@ index d4527965e48c..e27e45624d2d 100644
  	u64 spte = generation_mmio_spte_mask(gen);
  	u64 gpa = gfn << PAGE_SHIFT;
  
--	WARN_ON_ONCE(!shadow_mmio_value);
-+	WARN_ON_ONCE(!shadow_mmio_value &&
+-	WARN_ON_ONCE(!vcpu->kvm->arch.shadow_mmio_value);
++	WARN_ON_ONCE(!vcpu->kvm->arch.shadow_mmio_value &&
 +		     !kvm_gfn_shared_mask(vcpu->kvm));
  
  	access &= shadow_mmio_access_mask;
- 	spte |= shadow_mmio_value | access;
+ 	spte |= vcpu->kvm->arch.shadow_mmio_value | access;
 diff --git a/arch/x86/kvm/vmx/main.c b/arch/x86/kvm/vmx/main.c
 index d6d525de5326..89755cc4da2a 100644
 --- a/arch/x86/kvm/vmx/main.c

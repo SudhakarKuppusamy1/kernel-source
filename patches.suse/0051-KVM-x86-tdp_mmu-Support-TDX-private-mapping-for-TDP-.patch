@@ -552,9 +552,9 @@ index d4613d3975c7..41e99814feb2 100644
  	 * here since the SPTE is going from non-present to non-present.  Use
  	 * the raw write helper to avoid an unnecessary check on volatile bits.
  	 */
--	__kvm_tdp_mmu_write_spte(iter->sptep, 0);
-+//	__kvm_tdp_mmu_write_spte(iter->sptep, 0);
-+	__kvm_tdp_mmu_write_spte(sptep, 0);
+-	__kvm_tdp_mmu_write_spte(iter->sptep, SHADOW_NONPRESENT_VALUE);
++//	__kvm_tdp_mmu_write_spte(iter->sptep, SHADOW_NONPRESENT_VALUE);
++	__kvm_tdp_mmu_write_spte(sptep, SHADOW_NONPRESENT_VALUE);
  
  	return 0;
  }
