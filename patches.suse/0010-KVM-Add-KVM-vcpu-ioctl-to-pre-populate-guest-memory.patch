@@ -1,0 +1,147 @@
+Patch-mainline: Queued in subsystem maintainer repository
+Git-repo: https://gitlab.suse.de/coco/tdx/kernel-downstream-suse.git
+Git-commit: 7112cbce75f1c8e8271bf48ef3882036378c3c94
+References: jsc#PED-6143
+From: Isaku Yamahata <isaku.yamahata@intel.com>
+Date: Wed, 28 Aug 2024 15:47:38 +0800
+Subject: [PATCH 010/155] KVM: Add KVM vcpu ioctl to pre-populate guest memory
+
+Add new ioctl KVM_MEMORY_MAPPING in the kvm common code. It iterates on the
+memory range and call arch specific function.  Add stub function as weak
+symbol.
+
+Signed-off-by: Isaku Yamahata <isaku.yamahata@intel.com>
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ include/linux/kvm_host.h |  4 +++
+ include/uapi/linux/kvm.h | 10 ++++++
+ virt/kvm/kvm_main.c      | 67 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 81 insertions(+)
+
+diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
+index 3b6c7cc0b339..5a5a550acad4 100644
+--- a/include/linux/kvm_host.h
++++ b/include/linux/kvm_host.h
+@@ -2496,4 +2496,8 @@ long kvm_arch_vcpu_pre_fault_memory(struct kvm_vcpu *vcpu,
+ 				    struct kvm_pre_fault_memory *range);
+ #endif
+ 
++void kvm_arch_vcpu_pre_memory_mapping(struct kvm_vcpu *vcpu);
++int kvm_arch_vcpu_memory_mapping(struct kvm_vcpu *vcpu,
++				 struct kvm_memory_mapping *mapping);
++
+ #endif
+diff --git a/include/uapi/linux/kvm.h b/include/uapi/linux/kvm.h
+index 637efc055145..a4cc561e4834 100644
+--- a/include/uapi/linux/kvm.h
++++ b/include/uapi/linux/kvm.h
+@@ -933,6 +933,7 @@ struct kvm_enable_cap {
+ #define KVM_CAP_GUEST_MEMFD 234
+ #define KVM_CAP_VM_TYPES 235
+ #define KVM_CAP_PRE_FAULT_MEMORY 236
++#define KVM_CAP_MEMORY_MAPPING 239
+ 
+ #ifdef KVM_CAP_IRQ_ROUTING
+ 
+@@ -1573,4 +1574,13 @@ struct kvm_pre_fault_memory {
+ 	__u64 padding[5];
+ };
+ 
++#define KVM_MEMORY_MAPPING	_IOWR(KVMIO, 0xd5, struct kvm_memory_mapping)
++
++struct kvm_memory_mapping {
++	__u64 base_gfn;
++	__u64 nr_pages;
++	__u64 flags;
++	__u64 source;
++};
++
+ #endif /* __LINUX_KVM_H */
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index bfe6677acf89..952e8e194429 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -4450,6 +4450,62 @@ static int kvm_vcpu_pre_fault_memory(struct kvm_vcpu *vcpu,
+ }
+ #endif
+ 
++__weak void kvm_arch_vcpu_pre_memory_mapping(struct kvm_vcpu *vcpu)
++{
++}
++
++__weak int kvm_arch_vcpu_memory_mapping(struct kvm_vcpu *vcpu,
++					struct kvm_memory_mapping *mapping)
++{
++	return -EOPNOTSUPP;
++}
++
++static int kvm_vcpu_memory_mapping(struct kvm_vcpu *vcpu,
++				   struct kvm_memory_mapping *mapping)
++{
++	bool added = false;
++	int idx, r = 0;
++
++	/* flags isn't used yet. */
++	if (mapping->flags)
++		return -EINVAL;
++
++	/* Sanity check */
++	if (!IS_ALIGNED(mapping->source, PAGE_SIZE) ||
++	    !mapping->nr_pages ||
++	    mapping->nr_pages & GENMASK_ULL(63, 63 - PAGE_SHIFT) ||
++	    mapping->base_gfn + mapping->nr_pages <= mapping->base_gfn)
++		return -EINVAL;
++
++	vcpu_load(vcpu);
++	idx = srcu_read_lock(&vcpu->kvm->srcu);
++	kvm_arch_vcpu_pre_memory_mapping(vcpu);
++
++	while (mapping->nr_pages) {
++		if (signal_pending(current)) {
++			r = -ERESTARTSYS;
++			break;
++		}
++
++		if (need_resched())
++			cond_resched();
++
++		r = kvm_arch_vcpu_memory_mapping(vcpu, mapping);
++		if (r)
++			break;
++
++		added = true;
++	}
++
++	srcu_read_unlock(&vcpu->kvm->srcu, idx);
++	vcpu_put(vcpu);
++
++	if (added && mapping->nr_pages > 0)
++		r = -EAGAIN;
++
++	return r;
++}
++
+ static long kvm_vcpu_ioctl(struct file *filp,
+ 			   unsigned int ioctl, unsigned long arg)
+ {
+@@ -4711,6 +4767,17 @@ static long kvm_vcpu_compat_ioctl(struct file *filp,
+ 			r = kvm_vcpu_ioctl_set_sigmask(vcpu, NULL);
+ 		break;
+ 	}
++	case KVM_MEMORY_MAPPING: {
++		struct kvm_memory_mapping mapping;
++
++		r = -EFAULT;
++		if (copy_from_user(&mapping, argp, sizeof(mapping)))
++			break;
++		r = kvm_vcpu_memory_mapping(vcpu, &mapping);
++		if (copy_to_user(argp, &mapping, sizeof(mapping)))
++			r = -EFAULT;
++		break;
++	}
+ 	default:
+ 		r = kvm_vcpu_ioctl(filp, ioctl, arg);
+ 	}
+-- 
+2.43.0
+
